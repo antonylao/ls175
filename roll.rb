@@ -39,20 +39,6 @@ def split_path_and_query_string(str)
   str.split("?")
 end
 
-#test main method : parse_request
-# p parse_request("GET /?rolls=2&sides=6 HTTP/1.1")
-
-#test split_path_and_query_string
-# p split_path_and_query_string("/?rolls=2&sides=6&add=no") == ["/", "rolls=2&sides=6&add=no"]
-# p split_path_and_query_string("/?rolls=2&sides=6") == ["/", "rolls=2&sides=6"]
-# p split_path_and_query_string("/?rolls=2") == ["/", "rolls=2"]
-# p split_path_and_query_string("/path_random/here?sides=6") == ["/path_random/here", "sides=6"]
-
-#test split_query_params
-# p split_query_params("rolls=2&sides=6&add=no")
-# p split_query_params("test=&test2=here")  
-# p split_query_params("test=here&test2=")  
-
 def rolls(client, query_params)
   if rolls_params_valid?(query_params)
     rolls_int = query_params["rolls"].to_i
@@ -75,22 +61,6 @@ def rolls_params_valid?(params_hash)
 
   true
 end
-
-#test rolls_params_valid? OK
-#return false
-# p rolls_params_valid?({"rolls" => "6", "sides" => ""})
-# p rolls_params_valid?({"rolls" => "", "sides" => "4"})
-# p rolls_params_valid?({"rolls" => "6"})
-# p rolls_params_valid?({'sides' => "4"})
-# p rolls_params_valid?({})
-# p rolls_params_valid?(nil)
-# p rolls_params_valid?({'rolls' => "-3", 'sides' => "4"})
-#return true
-# p rolls_params_valid?({"rolls" => "3", "sides" => "4"})
-
-# test rolls OK
-# p rolls({"rolls" => "3", "sides" => "4"}, &(Proc.new { |result| puts result}))
-
 
 server = TCPServer.new("localhost", 3003)
 loop do

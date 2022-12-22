@@ -11,9 +11,9 @@ loop do
 
   #prints the request head
   loop do
-  line = client.gets
-  puts line
-  break if line == "\r\n"
+    line = client.gets
+    puts line
+    break if line == "\r\n"
   end
 
   #prints the request head and body

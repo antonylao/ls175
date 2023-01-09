@@ -18,3 +18,10 @@ dynamic_directory_index/ code challenge from LS
 
 users_and_interests/ code challenge from LS
   - display the list of users and their info (interests, email) based on a YAML file
+
+sinatra_todos/ (lesson 4)
+downloaded from https://da77jsbdz4r05.cloudfront.net/templates/sinatra_todos_r20160624.zip
+(completed project: https://ls-170-sinatra-todos.herokuapp.com/lists)
+(completed code: https://da77jsbdz4r05.cloudfront.net/templates/sinatra_todos_final_r20160624.zip)
+  - after a form with the "GET" method is sent, you can retrieve it in Sinatra with the `params[:name_of_input]`
+  - to run with Heroku, the root of the project must be in a separate Github root directory

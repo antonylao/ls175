@@ -6,6 +6,7 @@ require "tilt/erubis"
 configure do 
   enable :sessions
   set :session_secret, 'secret'
+  set :erb, :escape_html => true
 end
 
 helpers do
@@ -67,6 +68,15 @@ def error_for_todo_name(name)
   end
 end
 
+# Return the list at the specified index if it exists. Otherwise redirects to "/lists" (any subsequent code is not executed)
+def load_list(index)
+  list = session[:lists][index] if index && session[:lists][index]
+  return list if list
+
+  session[:error] = "The specified list was not found."
+  redirect "/lists"
+end
+
 before do 
   session[:lists] ||= []
 end
@@ -104,36 +114,22 @@ end
 # View a single todo list
 get "/lists/:id" do
   @list_id = params[:id].to_i
-  @list = session[:lists][@list_id]
-
-  if @list
-    erb :list, layout: :layout
-  else
-    @lists = session[:lists] 
-    session[:error] = "The list can't be found."
-    erb :lists, layout: :layout
-  end
+  @list = load_list(@list_id)
+  erb :list, layout: :layout
 end
 
 # Edit an existing todo list
 get "/lists/:id/edit" do
   id = params[:id].to_i
-  @list = session[:lists][id]
-
-  if @list
-    erb :edit_list, layout: :layout
-  else
-    @lists = session[:lists] 
-    session[:error] = "The list can't be found."
-    erb :lists, layout: :layout
-  end
+  @list = load_list(id)
+  erb :edit_list, layout: :layout
 end
 
 # Update an existing todo list
 # (if the user use the same name, it will be considered an error)
 post "/lists/:id" do 
   id = params[:id].to_i
-  @list = session[:lists][id]
+  @list = load_list(id)
 
   list_name = params[:list_name].strip
   error = error_for_list_name(list_name)
@@ -153,21 +149,15 @@ post "/lists/:id/delete" do
   id = params[:id].to_i 
   list = session[:lists][id]
 
-  if list
-    session[:lists].delete_at(id)
-    session[:success] = "The list #{list[:name]} has been deleted."
-    redirect "/lists"
-  else
-    @lists = session[:lists]
-    session[:error] = "The list can't be found"
-    erb :lists, layout: :layout
-  end
+  session[:lists].delete_at(id)
+  session[:success] = "The list #{list[:name]} has been deleted."
+  redirect "/lists" 
 end
 
 # Add a new todo to a list
 post '/lists/:list_id/todos' do
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
 
   todo_name = params[:todo].strip
   error = error_for_todo_name(todo_name)
@@ -185,7 +175,7 @@ end
 # Delete a todo from a list
 post "/lists/:list_id/todos/:todo_id/delete" do
   list_id = params[:list_id].to_i
-  list = session[:lists][list_id]
+  list = load_list(list_id)
   todo_id = params[:todo_id].to_i
 
   deleted_todo = list[:todos].delete_at(todo_id)
@@ -197,7 +187,7 @@ end
 # Update the status of a todo
 post "/lists/:list_id/todos/:todo_id" do 
   list_id = params[:list_id].to_i
-  list = session[:lists][list_id]
+  list = load_list(list_id)
   todo_id = params[:todo_id].to_i
   todo = list[:todos][todo_id]
 
@@ -210,7 +200,7 @@ end
 # Mark all todos as complete for a list
 post "/lists/:id/complete_all" do 
   list_id = params[:id].to_i
-  list = session[:lists][list_id]
+  list = load_list(list_id)
   list[:todos].each do |todo|
     todo[:completed] = true
   end

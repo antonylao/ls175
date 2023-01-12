@@ -29,26 +29,15 @@ helpers do
   def sort_lists(lists, &block)
     complete_lists, incomplete_lists = lists.partition {|list| list_complete?(list)}
 
-    incomplete_lists.each {|list| yield(list, lists.index(list))}
-    complete_lists.each {|list| yield(list, lists.index(list))}
+    incomplete_lists.each(&block)
+    complete_lists.each(&block) 
   end
 
   def sort_todos(todos, &block)
     complete_todos, incomplete_todos = todos.partition {|todo| todo[:completed]}
 
-    incomplete_todos.each {|todo| yield(todo, todos.index(todo))}
-    complete_todos.each {|todo| yield(todo, todos.index(todo))}
-    
-    # older solution
-    # incomplete_todos = {}
-    # complete_todos = {}
-
-    # todos.each_with_index do |todo, index|
-    #   todo[:completed] ? complete_todos[todo] = index : incomplete_todos[todo] = index
-    # end
-
-    # incomplete_todos.each(&block)
-    # complete_todos.each(&block)
+    incomplete_todos.each(&block) 
+    complete_todos.each(&block)
   end
 end
 
@@ -69,12 +58,26 @@ def error_for_todo_name(name)
 end
 
 # Return the list at the specified index if it exists. Otherwise redirects to "/lists" (any subsequent code is not executed)
-def load_list(index)
-  list = session[:lists][index] if index && session[:lists][index]
+def load_list(id)
+  list = session[:lists].find {|list| list[:id] == id}
   return list if list
 
   session[:error] = "The specified list was not found."
   redirect "/lists"
+end
+
+# Find the greatest todo id number, and add 1 to it. If the todo with the greatest id is deleted, a new todo will reuse this id.
+def next_todo_id(todos)
+  return 1 if todos.empty?
+  max = todos.map { |todo| todo[:id] }.max
+  max + 1
+end
+
+# Same logic as `next_todo_id` method
+def next_list_id(lists)
+  return 1 if lists.empty?
+  max = lists.map {|list| list[:id] }.max
+  max + 1
 end
 
 before do 
@@ -100,12 +103,14 @@ end
 post "/lists" do 
   list_name = params[:list_name].strip
   error = error_for_list_name(list_name)
+  lists = session[:lists]
 
   if error
     session[:error] = error
     erb :new_list, layout: :layout
   else
-    session[:lists] << {name: list_name, todos: []}
+    list_id = next_list_id(lists)
+    lists << {id: list_id, name: list_name, todos: []}
     session[:success] = "The list has been created."
     redirect "/lists"
   end
@@ -149,9 +154,15 @@ post "/lists/:id/delete" do
   id = params[:id].to_i 
   list = session[:lists][id]
 
-  session[:lists].delete_at(id)
-  session[:success] = "The list #{list[:name]} has been deleted."
-  redirect "/lists" 
+  session[:lists].reject! { |list| list[:id] == id }
+  
+  if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
+    # session[:success] = "The list #{list[:name]} has been deleted." # 500 response when applied
+    "/lists"
+  else
+    session[:success] = "The list #{list[:name]} has been deleted."
+    redirect "/lists" 
+  end
 end
 
 # Add a new todo to a list
@@ -163,10 +174,11 @@ post '/lists/:list_id/todos' do
   error = error_for_todo_name(todo_name)
   
   if error
-    session[:error] = error
+    session[:error] = error   
     erb :list, layout: :layout
   else
-    @list[:todos] << {name: todo_name, completed: false}
+    id = next_todo_id(@list[:todos])
+    @list[:todos] << {id: id, name: todo_name, completed: false}
     session[:success] = "The todo '#{todo_name}' was added."
     redirect "/lists/#{@list_id}"
   end
@@ -178,18 +190,24 @@ post "/lists/:list_id/todos/:todo_id/delete" do
   list = load_list(list_id)
   todo_id = params[:todo_id].to_i
 
-  deleted_todo = list[:todos].delete_at(todo_id)
-  deleted_todo_name = deleted_todo[:name]
-  session[:success] = "The todo '#{deleted_todo_name}' was deleted."
-  redirect "/lists/#{list_id}"
+  list[:todos].reject! { |todo| todo[:id] == todo_id } 
+
+  if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
+    status 204 # tells the browser that there is no content
+  else
+    deleted_todo_name = deleted_todo[:name]
+    session[:success] = "The todo '#{deleted_todo_name}' was deleted."
+    redirect "/lists/#{list_id}"
+  end
 end
 
 # Update the status of a todo
 post "/lists/:list_id/todos/:todo_id" do 
   list_id = params[:list_id].to_i
   list = load_list(list_id)
+
   todo_id = params[:todo_id].to_i
-  todo = list[:todos][todo_id]
+  todo = list[:todos].find { |todo| todo[:id] == todo_id}
 
   is_completed = (params[:completed] == "true")
   todo[:completed] = is_completed

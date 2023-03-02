@@ -29,6 +29,7 @@ GEM
       rack-test
       sinatra (~> 1.4.0)
       tilt (>= 1.3, < 3)
+    sysrandom (1.0.5)
     tilt (2.0.11)
 
 PLATFORMS
@@ -42,6 +43,7 @@ DEPENDENCIES
   rack-test
   sinatra (~> 1.4.7)
   sinatra-contrib
+  sysrandom
 
 RUBY VERSION
    ruby 2.6.3p62

@@ -37,7 +37,7 @@ def load_file_content(path)
   if file_extension == ".txt"
     headers["Content-Type"] = "text/plain"
     content
-  elsif file_extension == (".md" || ".markdown")
+  elsif [".md", ".markdown"].include? file_extension
     erb render_markdown(content) # we use the erb() method to have the stylesheet applied to the markdow
   elsif image_extension?(path)
     filename = File.basename(path)
@@ -459,7 +459,9 @@ post "/:filename" do
   end
 
   history_updated_filename = append_current_time_to_filename(filename)
-  add_updated_file_to_history(filename, history_updated_filename, params[:content])
+  add_updated_file_to_history(filename,
+                              history_updated_filename,
+                              params[:content])
   update_history_yml(filename, history_updated_filename)
 
   # update content of the file

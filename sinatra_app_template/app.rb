@@ -1,5 +1,4 @@
 require "sinatra"
-require "sinatra/reloader" if development? # reload the application at each request (except in production)
 require "sinatra/content_for" # to display content to a layout from a view template: uses content_for and yield_content methods in erb files
 require "tilt/erubis" # to use erb files
 
@@ -10,6 +9,11 @@ configure do
   set :session_secret, ENV.fetch('SESSION_SECRET') { SecureRandom.hex(64) }
 end
 
+# reload the application at each request if in development, along with other files needed (added with require_relative)
+configure(:development) do
+  require "sinatra/reloader"
+  also_reload "other_file.rb"
+end
 
 helpers do
 end
